@@ -15,7 +15,6 @@ USERS_FILE = "users.json"
 SENT_FILE = "sent_notifications.json"
 
 IRAN_TZ = pytz.timezone("Asia/Tehran")
-
 RSS_URL = "https://www.sofascore.com/team/football/esteghlal/3402/rss"
 
 def load_json(filename):
@@ -60,6 +59,20 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     add_user(update.effective_chat.id)
     await update.message.reply_text("🔥 یادآور بازی‌های استقلال فعال شد")
 
+async def next_match(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    matches = get_matches()
+    if not matches:
+        await update.message.reply_text("⛔ بازی آینده‌ای پیدا نشد")
+        return
+
+    next_game = sorted(matches, key=lambda x: x["time"])[0]
+    await update.message.reply_text(
+        f"⚽ بازی بعدی استقلال:\n\n"
+        f"{next_game['title']}\n"
+        f"🗓 {next_game['time'].strftime('%Y-%m-%d')}\n"
+        f"⏰ {next_game['time'].strftime('%H:%M')} (ایران)"
+    )
+
 async def check_matches(context: ContextTypes.DEFAULT_TYPE):
     matches = get_matches()
     sent = load_json(SENT_FILE)
@@ -95,5 +108,6 @@ async def check_matches(context: ContextTypes.DEFAULT_TYPE):
 if __name__ == "__main__":
     app = ApplicationBuilder().token(TOKEN).build()
     app.add_handler(CommandHandler("start", start))
+    app.add_handler(CommandHandler("next", next_match))
     app.job_queue.run_repeating(check_matches, interval=1800, first=10)
     app.run_polling()
