@@ -16,7 +16,6 @@ SENT_FILE = "sent_notifications.json"
 
 IRAN_TZ = pytz.timezone("Asia/Tehran")
 
-# RSS استقلال از SofaScore
 RSS_URL = "https://www.sofascore.com/team/football/esteghlal/3402/rss"
 
 def load_json(filename):
@@ -59,7 +58,7 @@ def get_matches():
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     add_user(update.effective_chat.id)
-    await update.message.reply_text("🔥 یادآور بازی‌های استقلال فعال شد (بدون API پولی)")
+    await update.message.reply_text("🔥 یادآور بازی‌های استقلال فعال شد")
 
 async def check_matches(context: ContextTypes.DEFAULT_TYPE):
     matches = get_matches()
@@ -71,39 +70,30 @@ async def check_matches(context: ContextTypes.DEFAULT_TYPE):
         diff = match_time - now
         fixture_id = match["id"]
 
-        # 24 ساعت قبل
         if timedelta(hours=23, minutes=30) < diff < timedelta(hours=24, minutes=30):
             key = fixture_id + "_24h"
             if key not in sent:
                 for user in get_users():
                     await context.bot.send_message(
                         chat_id=user,
-                        text=f"⏳ فردا ساعت {match_time.strftime('%H:%M')} (به وقت ایران)\n{match['title']}"
+                        text=f"⏳ فردا ساعت {match_time.strftime('%H:%M')} (ایران)\n{match['title']}"
                     )
                 sent[key] = True
 
-        # 1 ساعت قبل
         if timedelta(minutes=50) < diff < timedelta(minutes=70):
             key = fixture_id + "_1h"
             if key not in sent:
                 for user in get_users():
                     await context.bot.send_message(
                         chat_id=user,
-                        text=f"🔥 یک ساعت تا بازی!\n{match['title']}\n🕒 {match_time.strftime('%H:%M')} به وقت ایران"
+                        text=f"🔥 یک ساعت تا بازی!\n{match['title']}\n🕒 {match_time.strftime('%H:%M')} (ایران)"
                     )
                 sent[key] = True
 
     save_json(SENT_FILE, sent)
 
-app = ApplicationBuilder().token(TOKEN).build()
-app.add_handler(CommandHandler("start", start))
-app.job_queue.run_repeating(check_matches, interval=1800, first=10)
-
-PORT = int(os.environ.get("PORT", 8080))
-WEBHOOK_URL = os.getenv("RAILWAY_STATIC_URL")
-
-app.run_webhook(
-    listen="0.0.0.0",
-    port=PORT,
-    webhook_url=f"https://{WEBHOOK_URL}"
-)
+if __name__ == "__main__":
+    app = ApplicationBuilder().token(TOKEN).build()
+    app.add_handler(CommandHandler("start", start))
+    app.job_queue.run_repeating(check_matches, interval=1800, first=10)
+    app.run_polling()
